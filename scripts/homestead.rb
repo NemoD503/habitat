@@ -17,6 +17,10 @@ class Homestead
     config.vm.box_version = settings["version"] ||= ">= 0.4.0"
     config.vm.hostname = settings["hostname"] ||= "homestead"
 
+    # Configure User
+    config.ssh.insert_key = false
+    config.ssh.username = 'bitrix'
+
     # Configure A Private Network IP
     config.vm.network :private_network, ip: settings["ip"] ||= "192.168.10.10"
 
@@ -29,18 +33,18 @@ class Homestead
 
     # Configure A Few VirtualBox Settings
     config.vm.provider "virtualbox" do |vb|
-      vb.name = settings["name"] ||= "homestead-7"
+      vb.name = settings["name"] ||= "habitat"
       vb.customize ["modifyvm", :id, "--memory", settings["memory"] ||= "2048"]
       vb.customize ["modifyvm", :id, "--cpus", settings["cpus"] ||= "1"]
       vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
       vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-      vb.customize ["modifyvm", :id, "--ostype", "Ubuntu_64"]
+      vb.customize ["modifyvm", :id, "--ostype", "RedHat_64"]
     end
 
     # Configure A Few VMware Settings
     ["vmware_fusion", "vmware_workstation"].each do |vmware|
       config.vm.provider vmware do |v|
-        v.vmx["displayName"] = settings["name"] ||= "homestead-7"
+        v.vmx["displayName"] = "homestead"
         v.vmx["memsize"] = settings["memory"] ||= 2048
         v.vmx["numvcpus"] = settings["cpus"] ||= 1
         v.vmx["guestOS"] = "ubuntu-64"
@@ -74,11 +78,9 @@ class Homestead
     }
 
     # Use Default Port Forwarding Unless Overridden
-    unless settings.has_key?("default_ports") && settings["default_ports"] == false
-      default_ports.each do |guest, host|
-        unless settings["ports"].any? { |mapping| mapping["guest"] == guest }
-          config.vm.network "forwarded_port", guest: guest, host: host, auto_correct: true
-        end
+    default_ports.each do |guest, host|
+      unless settings["ports"].any? { |mapping| mapping["guest"] == guest }
+        config.vm.network "forwarded_port", guest: guest, host: host, auto_correct: true
       end
     end
 
@@ -93,7 +95,7 @@ class Homestead
     if settings.include? 'authorize'
       if File.exists? File.expand_path(settings["authorize"])
         config.vm.provision "shell" do |s|
-          s.inline = "echo $1 | grep -xq \"$1\" /home/vagrant/.ssh/authorized_keys || echo $1 | tee -a /home/vagrant/.ssh/authorized_keys"
+          s.inline = "echo $1 | grep -xq \"$1\" /home/bitrix/.ssh/authorized_keys || echo $1 | tee -a /home/bitrix/.ssh/authorized_keys"
           s.args = [File.read(File.expand_path(settings["authorize"]))]
         end
       end
@@ -104,7 +106,7 @@ class Homestead
       settings["keys"].each do |key|
         config.vm.provision "shell" do |s|
           s.privileged = false
-          s.inline = "echo \"$1\" > /home/vagrant/.ssh/$2 && chmod 600 /home/vagrant/.ssh/$2"
+          s.inline = "echo \"$1\" > /home/bitrix/.ssh/$2 && chmod 600 /home/bitrix/.ssh/$2"
           s.args = [File.read(File.expand_path(key)), key.split('/').last]
         end
       end
@@ -142,50 +144,50 @@ class Homestead
     end
 
     # Install All The Configured Nginx Sites
-    config.vm.provision "shell" do |s|
-        s.path = scriptDir + "/clear-nginx.sh"
-    end
+#    config.vm.provision "shell" do |s|
+#        s.path = scriptDir + "/clear-nginx.sh"
+#    end
 
 
-    if settings.include? 'sites'
-      settings["sites"].each do |site|
-        type = site["type"] ||= "laravel"
-
-        if (site.has_key?("hhvm") && site["hhvm"])
-          type = "hhvm"
-        end
-
-        if (type == "symfony")
-          type = "symfony2"
-        end
-
-        config.vm.provision "shell" do |s|
-          s.path = scriptDir + "/serve-#{type}.sh"
-          s.args = [site["map"], site["to"], site["port"] ||= "80", site["ssl"] ||= "443"]
-        end
-
-        # Configure The Cron Schedule
-        if (site.has_key?("schedule"))
-          config.vm.provision "shell" do |s|
-            if (site["schedule"])
-              s.path = scriptDir + "/cron-schedule.sh"
-              s.args = [site["map"].tr('^A-Za-z0-9', ''), site["to"]]
-            else
-              s.inline = "rm -f /etc/cron.d/$1"
-              s.args = [site["map"].tr('^A-Za-z0-9', '')]
-            end
-          end
-        end
-
-      end
-    end
+    # if settings.include? 'sites'
+    #   settings["sites"].each do |site|
+    #     type = site["type"] ||= "laravel"
+  
+    #     if (site.has_key?("hhvm") && site["hhvm"])
+    #       type = "hhvm"
+    #     end
+  
+    #     if (type == "symfony")
+    #       type = "symfony2"
+    #     end
+  
+    #     config.vm.provision "shell" do |s|
+    #       s.path = scriptDir + "/serve-#{type}.sh"
+    #       s.args = [site["map"], site["to"], site["port"] ||= "80", site["ssl"] ||= "443"]
+    #     end
+  
+    #     # Configure The Cron Schedule
+    #     if (site.has_key?("schedule"))
+    #       config.vm.provision "shell" do |s|
+    #         if (site["schedule"])
+    #           s.path = scriptDir + "/cron-schedule.sh"
+    #           s.args = [site["map"].tr('^A-Za-z0-9', ''), site["to"]]
+    #         else
+    #           s.inline = "rm -f /etc/cron.d/$1"
+    #           s.args = [site["map"].tr('^A-Za-z0-9', '')]
+    #         end
+    #       end
+    #     end
+  
+    #   end
+    # end
 
     # Install MariaDB If Necessary
-    if settings.has_key?("mariadb") && settings["mariadb"]
-      config.vm.provision "shell" do |s|
-        s.path = scriptDir + "/install-maria.sh"
-      end
-    end
+    # if settings.has_key?("mariadb") && settings["mariadb"]
+    #   config.vm.provision "shell" do |s|
+    #     s.path = scriptDir + "/install-maria.sh"
+    #   end
+    # end
 
 
     # Configure All Of The Configured Databases
@@ -196,52 +198,52 @@ class Homestead
             s.args = [db]
           end
 
-          config.vm.provision "shell" do |s|
-            s.path = scriptDir + "/create-postgres.sh"
-            s.args = [db]
-          end
+          # config.vm.provision "shell" do |s|
+          #   s.path = scriptDir + "/create-postgres.sh"
+          #   s.args = [db]
+          # end
         end
     end
 
     # Configure All Of The Server Environment Variables
-    config.vm.provision "shell" do |s|
-        s.path = scriptDir + "/clear-variables.sh"
-    end
+    # config.vm.provision "shell" do |s|
+    #     s.path = scriptDir + "/clear-variables.sh"
+    # end
 
-    if settings.has_key?("variables")
-      settings["variables"].each do |var|
-        config.vm.provision "shell" do |s|
-          s.inline = "echo \"\nenv[$1] = '$2'\" >> /etc/php/7.0/fpm/php-fpm.conf"
-          s.args = [var["key"], var["value"]]
-        end
+    # if settings.has_key?("variables")
+    #   settings["variables"].each do |var|
+    #     config.vm.provision "shell" do |s|
+    #       s.inline = "echo \"\nenv[$1] = '$2'\" >> /etc/php/7.0/fpm/php-fpm.conf"
+    #       s.args = [var["key"], var["value"]]
+    #     end
 
-        config.vm.provision "shell" do |s|
-            s.inline = "echo \"\n# Set Homestead Environment Variable\nexport $1=$2\" >> /home/vagrant/.profile"
-            s.args = [var["key"], var["value"]]
-        end
-      end
+    #     config.vm.provision "shell" do |s|
+    #         s.inline = "echo \"\n# Set Homestead Environment Variable\nexport $1=$2\" >> /home/vagrant/.profile"
+    #         s.args = [var["key"], var["value"]]
+    #     end
+    #   end
 
-      config.vm.provision "shell" do |s|
-        s.inline = "service php7.0-fpm restart"
-      end
-    end
+    #   config.vm.provision "shell" do |s|
+    #     s.inline = "service php7.0-fpm restart"
+    #   end
+    # end
 
     # Update Composer On Every Provision
-    config.vm.provision "shell" do |s|
-      s.inline = "/usr/local/bin/composer self-update"
-    end
+    # config.vm.provision "shell" do |s|
+    #   s.inline = "/usr/local/bin/composer self-update"
+    # end
 
     # Configure Blackfire.io
-    if settings.has_key?("blackfire")
-      config.vm.provision "shell" do |s|
-        s.path = scriptDir + "/blackfire.sh"
-        s.args = [
-          settings["blackfire"][0]["id"],
-          settings["blackfire"][0]["token"],
-          settings["blackfire"][0]["client-id"],
-          settings["blackfire"][0]["client-token"]
-        ]
-      end
-    end
+    # if settings.has_key?("blackfire")
+    #   config.vm.provision "shell" do |s|
+    #     s.path = scriptDir + "/blackfire.sh"
+    #     s.args = [
+    #       settings["blackfire"][0]["id"],
+    #       settings["blackfire"][0]["token"],
+    #       settings["blackfire"][0]["client-id"],
+    #       settings["blackfire"][0]["client-token"]
+    #     ]
+    #   end
+    # end
   end
 end
