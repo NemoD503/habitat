@@ -1,5 +1,7 @@
-# Laravel Homestead
+# Bitrix Habitat
 
-The official Laravel local development environment.
+The local development bitrix environment for Vagrant.
 
-Official documentation [is located here](http://laravel.com/docs/homestead).
+Package still under development.
+
+Inspired by Laravel Homestead.
