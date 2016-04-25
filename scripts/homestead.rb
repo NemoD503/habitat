@@ -13,7 +13,7 @@ class Homestead
     config.ssh.forward_agent = true
 
     # Configure The Box
-    config.vm.box = settings["box"] ||= "laravel/homestead"
+    config.vm.box = settings["box"] ||= "NemoD503/habitat"
     config.vm.box_version = settings["version"] ||= ">= 0.4.0"
     config.vm.hostname = settings["hostname"] ||= "homestead"
 
