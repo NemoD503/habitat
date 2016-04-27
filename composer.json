@@ -1,6 +1,6 @@
 {
-    "name": "laravel/homestead",
-    "description": "A virtual machine for web artisans.",
+    "name": "NemoD503/habitat",
+    "description": "A virtual machine for bitrix developers.",
     "require": {
         "php": ">=5.5.9",
         "symfony/console": "~2.3|~3.0",
@@ -11,6 +11,10 @@
         {
             "name": "Taylor Otwell",
             "email": "taylorotwell@gmail.com"
+        },
+        {
+            "name": "Nickolay Kolesnichenko",
+            "email": "1historicus@gmail.com"
         }
     ],
     "autoload": {
@@ -24,6 +28,6 @@
         }
     },
     "bin": [
-        "homestead"
+        "habitat"
     ]
 }
